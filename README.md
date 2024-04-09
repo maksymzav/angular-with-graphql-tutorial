@@ -43,7 +43,7 @@ npm install
 ```
 
 #### Step 5: Start the GraphQL server
-
+In the same terminal, run the following command:
 ```bash
 nx serve api
 ```
@@ -64,13 +64,15 @@ query GetAllProducts {
 ```
 
 The result should look like this:
-![](images/graphql-result-1.png)
+![](images/altair-1.png)
 
 Pay attention that graphql returns only the fields you asked for in a query.
 
 Then inspect the right part of the window, it allows you to see the schema of the API.
 That means you can see everything that the API can do.
-![](images/graphql-result-2.png)
+![](images/altair-2.png)
+If you don't see this section, click the "Docs" button in the top right corner.
+![](images/altair-3.png)
 
 **Queries** allow you to get data from the server.
 **Mutations** allow you to change data on the server.
