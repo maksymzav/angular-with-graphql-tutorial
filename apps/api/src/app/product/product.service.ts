@@ -1,21 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { Product } from './product.entity';
 import { CreateProductInput, UpdateProductInput } from './product.input';
+import { StoreService } from '../store/store.service';
+import { SellerService } from '../seller/seller.service';
 
 @Injectable()
 export class ProductService {
-  private products: Product[] = [
-    { id: 1, name: 'Product 1', price: 100 },
-    { id: 2, name: 'Product 2', price: 200 },
-    { id: 3, name: 'Product 3', price: 300 },
-  ];
+
+  constructor(
+    private readonly sellerService: SellerService,
+    private readonly storeService: StoreService,
+  ) {
+    this.create({ name: 'Product 1', price: 100, sellerId: 1, storeIds: [1, 2] });
+    this.create({ name: 'Product 2', price: 200, sellerId: 2, storeIds: [2, 3] });
+    this.create({ name: 'Product 3', price: 300, sellerId: 3, storeIds: [1, 3] });
+  }
+
+  private products: Product[] = [];
 
   create(input: CreateProductInput): Product {
-    const product = { id: Date.now(), ...input };
+    const product: Product = {
+      id: Date.now(),
+      name: input.name,
+      price: input.price,
+      seller: this.sellerService.findOne(input.sellerId),
+      stores: this.storeService.findStoresByProductIds(input.storeIds),
+    };
     this.products.push(product);
     return product;
   }
-
   findAll(): Product[] {
     return this.products;
   }

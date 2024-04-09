@@ -1,4 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
+import { Int } from 'type-graphql';
 
 @InputType()
 export class CreateProductInput {
@@ -7,6 +8,12 @@ export class CreateProductInput {
 
   @Field()
   price: number;
+
+  @Field(() => Int)
+  sellerId: number;
+
+  @Field(() => [Int])
+  storeIds: number[];
 }
 
 @InputType()
@@ -16,4 +23,10 @@ export class UpdateProductInput {
 
   @Field({ nullable: true })
   price?: number;
+
+  @Field(() => Int, { nullable: true })
+  sellerId?: number;
+
+  @Field(() => [Int], { nullable: true })
+  storeIds?: number[];
 }
