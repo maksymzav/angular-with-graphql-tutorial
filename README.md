@@ -127,3 +127,106 @@ The result should look like this:
 ```
 So when you ask more information, you get more information.
 Play with the queries from the right part of the window to see what you can get.
+
+## Simple Angular application
+
+Now let's create a simple Angular application that will display the products. First we'll display the products from an array we'll make manually. After we'll display the data from graphql on it.
+
+#### Step 1: Create a new Angular application
+
+In the terminal, run the following command:
+
+```bash
+npx nx generate @nx/angular:app webapp --directory=apps/webapp --style=scss --e2eTestRunner=none --bundler=esbuild --ssr=false --projectNameAndRootFormat=as-provided
+```
+
+What does this command do?
+- we add `npx` at the beginning to run the command from the `node_modules` folder, so you don't need nx installed on your computer
+- if you worked with angular CLI before, you might have been used to `ng` instead of `nx`. `nx` is a tool that extends the angular CLI, so you can use it to generate angular applications, libraries, and more.
+- `generate` is a command to generate something
+- `@nx/angular:app` is a schematic that generates an angular application
+- `webapp` is the name of the application
+- `--directory=apps/webapp` is the directory where the application will be generated
+- `--style=scss` is the style of the application, if you haven't worked with scss before, you can use `css` instead
+- we won't dive deeper into other options, they are here so you don't need to make those choices in the terminal. Because otherwise nx would ask you to specify them.
+
+NX will generate a new Angular application in the `apps/webapp` folder.
+You can run the application with the following command:
+
+```bash
+nx serve webapp
+```
+
+Open your browser and go to `http://localhost:4200/`. You should see the default Angular application.
+NX generates some predefined content, but we'll remove it and add our own.
+
+Open in your code editor file `apps/webapp/src/app/app.component.html` and remove `<app-nx-welcome></app-nx-welcome>` from it. The remaining content should look like this:
+
+```html
+<router-outlet></router-outlet>
+```
+
+#### Step 2: Create a component to display the products
+
+In the terminal, run the following command:
+
+```bash
+npx nx generate @schematics/angular:component products --project=webapp
+```
+
+This command generates a component named `products` in the `webapp` project.
+
+#### Step 3: Display the products
+
+Open the `apps/webapp/src/app/products/products.component.ts` file and add the following code:
+
+```typescript
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-products',
+  standalone: true,
+  imports: [],
+  templateUrl: './products.component.html',
+  styleUrl: './products.component.scss'
+})
+export class ProductsComponent {
+  products = [
+    { id: 1, name: 'Product 1', price: 100 },
+    { id: 2, name: 'Product 2', price: 200 },
+    { id: 3, name: 'Product 3', price: 300 },
+  ];
+
+}
+```
+
+Open the `apps/webapp/src/app/products/products.component.html` file and add the following code:
+
+```html
+<h1>Products</h1>
+<ul>
+  @for (product of products; track product.name) {
+  <li>
+    {{ product.name }} - {{ product.price }}
+  </li>
+  }
+</ul>
+```
+
+#### Step 4: Display the component on the main route
+
+Modify the `apps/webapp/src/app/app.routes.ts` file to load the products component as a homepage:
+
+```typescript
+import { Route } from '@angular/router';
+import { ProductsComponent } from './products/products.component';
+
+export const appRoutes: Route[] = [
+  {
+    path: '',
+    component: ProductsComponent
+  }
+];
+```
+
+Open your browser and go to `http://localhost:4200/`. You should see the list of products.
