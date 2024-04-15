@@ -215,7 +215,10 @@ Open the `apps/webapp/src/app/products/products.component.html` file and add the
 
 #### Step 4: Display the component on the main route
 
-Modify the `apps/webapp/src/app/app.routes.ts` file to load the products component as a homepage:
+Modify the `apps/webapp/src/app/app.routes.ts` file to load the products component as a homepage.
+
+<details>
+<summary>See the solution</summary>
 
 ```typescript
 import { Route } from '@angular/router';
@@ -228,5 +231,197 @@ export const appRoutes: Route[] = [
   }
 ];
 ```
-
+</details>
 Open your browser and go to `http://localhost:4200/`. You should see the list of products.
+
+#### Step 5: Refactor the component to load products from a service
+
+Now the products data is set in a component.
+The best practise in Angular is to move data related logic to a service.
+
+Storing data in a service instead of a component allows the data to be shared among different parts of the application and keeps it consistent even when components are added or removed.
+
+To make it easier to modify the service to use graphql in the future, create an async getProducts method, that will return a Promise with an array.
+
+<details>
+<summary>Read more about promise and async functions</summary>
+
+Imagine ordering a coffee at a café. When you place your order, the barista might give you a token or number. This token doesn't give you the coffee immediately, but it's a "promise" that you will get your coffee once it's ready. In JavaScript, a Promise works in a similar way. (The example from [dev.to](https://dev.to/patric12/understanding-javascript-promises-a-beginners-guide-51ee) )
+
+[Read more](https://www.freecodecamp.org/news/guide-to-javascript-promises/)
+
+</details>
+
+<details>
+<summary>Show solution</summary>
+
+1. First create an interface for a product:
+`apps/webapp/src/app/products/data-access/product.interface.ts`
+```typescript
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+}
+```
+
+2. Create a service:
+`apps/webapp/src/app/products/data-access/products.service.ts`
+```typescript
+import { Injectable } from "@angular/core";
+import { Product } from "./products.interface";
+
+@Injectable()
+export class ProductService {
+    private data: Product[] = [
+      { id: 1, name: 'Product 1', price: 100 },
+      { id: 2, name: 'Product 2', price: 200 },
+      { id: 3, name: 'Product 3', price: 300 },
+    ];
+  
+    async getProducts(): Promise<Product[]>{
+      return this.data;
+    }
+  }
+```
+
+3. Modify a component to load use data from a service.
+`apps/webapp/src/app/products/products.component.ts`
+```typescript
+import { Component, inject } from '@angular/core';
+import { ProductsService } from './data-access/products.service';
+import { AsyncPipe } from '@angular/common';
+
+@Component({
+  selector: 'app-products',
+  standalone: true,
+  imports: [AsyncPipe],
+  templateUrl: './products.component.html',
+  styleUrl: './products.component.scss'
+})
+export class ProductsComponent {
+  productsService = inject(ProductsService);
+  products$ = this.productsService.getProducts();
+
+}
+```
+
+</details>
+
+## Integrate with Graphq
+
+To make graphql calls from an Angular application, we'll use a library called Apollo.
+
+#### Step 1. Right a GraphQL query
+
+A query specifies what data you want to get from the server.
+In our case, we want to get all products.
+
+`apps/webapp/src/app/products/data-access/get-products.graphql`
+```graphql
+query GetAllProducts {
+  getAllProducts {
+    id
+    name
+    price
+  }
+}
+```
+
+#### Step 2. Generate graphql types
+
+Ensure the server is running:
+```bash
+nx serve api
+```
+
+With Apollo, you can generate types for your queries.
+So we don't have to write the interfaces for our data or services to fetch data.
+Here is how to do it:
+
+Run the following command in the terminal:
+```bash
+npx graphql-codegen --config codegen.yml
+```
+
+This commands fetches all needed information from the graphql server and generates types for it.
+You can find the generated types in the `apps/webapp/src/generated` folder.
+
+#### Step 3. Use generated graphql types to fetch products
+
+Modify the service to use the generated types.
+
+`apps/webapp/src/app/products/data-access/products.service.ts`
+```typescript
+import { inject, Injectable } from '@angular/core';
+import { Product } from './products.interface';
+import { GetAllProductsGQL } from '../../../generated/graphql';
+import { firstValueFrom } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ProductsService {
+  getAllProductsQQL = inject(GetAllProductsGQL);
+
+  async getProducts(): Promise<Product[]> {
+    const result = await firstValueFrom(this.getAllProductsQQL.fetch());
+    return result.data.getAllProducts.map((product) => ({
+      id: product.id,
+      name: product.name,
+      price: product.price
+    }));
+  }
+}
+```
+
+What happens here:
+
+- We inject the `GetAllProductsGQL` service that was generated by Graphql Codegen. This service is used to fetch all products from the server.
+- We use the `firstValueFrom` function from RxJS to get the first value from the observable returned by the `fetch` method.
+- We map the result to the `Product` interface.
+- We return the result.
+
+> Because of specifying an interface of data that is returned from the service, we can easily change the implementation of the service without changing the component that uses it. So no modification in the component is now needed.
+
+We also need to update our app configuration to use the Apollo client.
+
+`apps/webapp/src/app/app.config.ts`
+```typescript
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { appRoutes } from './app.routes';
+import { Apollo, APOLLO_OPTIONS } from 'apollo-angular';
+import { HttpLink } from 'apollo-angular/http';
+import { InMemoryCache } from '@apollo/client/core';
+import { provideHttpClient } from '@angular/common/http';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+
+    provideRouter(appRoutes),
+    Apollo,
+    {
+      provide: APOLLO_OPTIONS,
+      useFactory(httpLink: HttpLink) {
+        return {
+          cache: new InMemoryCache(),
+          link: httpLink.create({
+            uri: 'http://localhost:3000/graphql'
+          })
+        };
+      },
+      deps: [HttpLink]
+    },
+    provideHttpClient(),
+  ],
+};
+```
+
+What happens here:
+
+- We provide the Apollo service to the application.
+- We provide the Apollo options to the application. The options specify the cache and the link to the server.
+- We also provide the HttpClient service because Apollo requires it.
+
+Here you are. If you update web page with the products, you should see the products fetched from the server.
