@@ -20,7 +20,7 @@ export class ProductService {
 
   create(input: CreateProductInput): Product {
     const product: Product = {
-      id: Date.now(),
+      id: Date.now() + (Math.random() * 1e7 << 3),
       name: input.name,
       price: input.price,
       seller: this.sellerService.findOne(input.sellerId),

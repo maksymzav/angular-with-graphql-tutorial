@@ -16,6 +16,7 @@ import { StoreModule } from './store/store.module';
     GraphQLModule.forRoot({
       autoSchemaFile: true,
       driver: ApolloDriver,
+      introspection: true,
     })
   ],
   controllers: [AppController],
