@@ -43,3 +43,5 @@ Thumbs.db
 .yarn/install-state.gz
 
 .angular
+migrations.json
+.vscode
